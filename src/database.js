@@ -10,7 +10,7 @@ const localURI = 'mongodb://localhost:27017/Refaccionaria';
 
 // Función para conectar a MongoDB con reintento automático
 const connectWithRetry = (uri) => {
-  mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
+  mongoose.connect(uri, { useNewUrlParser: true })
     .then(() => console.log('Conexión exitosa a MongoDB'))
     .catch((err) => {
       console.error('Error al conectar a la DB:', err);

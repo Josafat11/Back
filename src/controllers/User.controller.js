@@ -130,7 +130,7 @@ export const login = async (req, res) => {
             const remainingTime = Math.ceil((loginTimeouts[email] - Date.now()) / 1000);  // Segundos restantes
             return res.status(429).json({
                 message: `Has alcanzado el límite de intentos fallidos. Intenta de nuevo en ${remainingTime} segundos.`,
-                remainingTime  // Enviar el tiempo restante en la respuesta
+                remainingTime
             });
         }
 
@@ -143,17 +143,15 @@ export const login = async (req, res) => {
         // Comparar la contraseña ingresada con la encriptada en la base de datos
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            // Incrementar el contador de intentos fallidos
             failedLoginAttempts[email] = (failedLoginAttempts[email] || 0) + 1;
 
-            // Si se alcanzó el límite de intentos fallidos, bloquear por el tiempo definido
             if (failedLoginAttempts[email] >= MAX_FAILED_ATTEMPTS) {
                 loginTimeouts[email] = Date.now() + LOGIN_TIMEOUT;  // Bloquear por 1 minuto
-                failedLoginAttempts[email] = 0;  // Reiniciar el contador
-                const remainingTime = Math.ceil((loginTimeouts[email] - Date.now()) / 1000);  // Segundos restantes
+                failedLoginAttempts[email] = 0;
+                const remainingTime = Math.ceil((loginTimeouts[email] - Date.now()) / 1000);
                 return res.status(429).json({
                     message: `Has alcanzado el límite de intentos fallidos. Intenta de nuevo en ${remainingTime} segundos.`,
-                    remainingTime  // Enviar el tiempo restante en la respuesta
+                    remainingTime
                 });
             }
 
@@ -164,14 +162,120 @@ export const login = async (req, res) => {
         failedLoginAttempts[email] = 0;
         loginTimeouts[email] = null;
 
-        // Login exitoso
-        res.status(200).json({ message: "Inicio de sesión exitoso" });
+        // Guardar la sesión
+        req.session.userId = user._id;
+        req.session.email = user.email;
+        req.session.name = user.name; // Agregamos el nombre del usuario a la sesión
+        req.session.isAuthenticated = true;
+
+        return res.status(200).json({
+            message: "Inicio de sesión exitoso",
+            user: {
+                userId: user._id,
+                email: user.email,
+                name: user.name  // Incluimos el nombre en la respuesta
+            }
+        });
 
     } catch (error) {
         console.error("Error en la función login:", error);
         res.status(500).json({ message: "Error interno del servidor" });
     }
 };
+
+// Función para enviar el enlace de restablecimiento de contraseña
+export const sendPasswordResetLink = async (req, res) => {
+    const { email } = req.body;
+  
+    try {
+      // Buscar el usuario por email
+      const user = await User.findOne({ email });
+      if (!user) {
+        return res.status(404).json({ message: "Usuario no encontrado" });
+      }
+  
+      // Generar un token de restablecimiento de contraseña (expira en 1 hora)
+      const token = jwt.sign({ email: user.email, userId: user._id }, SECRET, { expiresIn: '1h' });
+  
+      // Crear el enlace de restablecimiento
+      const resetUrl = `http://localhost:3000/restorepassword/${token}`;
+  
+      // Enviar el correo con el enlace de restablecimiento de contraseña
+      await transporter.sendMail({
+        from: '"Soporte 👻" <jose1fat@gmail.com>',
+        to: user.email,
+        subject: "Restablece tu contraseña ✔️",
+        html: `<p>Hola ${user.name},</p>
+               <p>Recibimos una solicitud para restablecer tu contraseña. Por favor, haz clic en el siguiente enlace para continuar:</p>
+               <a href="${resetUrl}">Restablecer Contraseña</a>
+               <p>Este enlace expirará en 1 hora.</p>`
+      });
+  
+      res.status(200).json({ message: "Correo de restablecimiento enviado con éxito." });
+  
+    } catch (error) {
+      console.error("Error en la función sendPasswordResetLink:", error);
+      res.status(500).json({ message: "Error interno del servidor" });
+    }
+  };
+
+//cerrar sesion
+export const logout = (req, res) => {
+    req.session.destroy(err => {
+      if (err) {
+        return res.status(500).json({ message: 'Error al cerrar sesión' });
+      }
+  
+      res.clearCookie('connect.sid'); // Borra la cookie de sesión
+      return res.status(200).json({ message: 'Sesión cerrada con éxito' });
+    });
+  };
+  
+// Verificar si el usuario está autenticado
+export const checkSession = (req, res) => {
+    if (req.session.userId) {
+        return res.status(200).json({
+            isAuthenticated: true,
+            user: {
+                userId: req.session.userId,
+                email: req.session.email,
+                name: req.session.name // Incluimos el nombre en la respuesta
+            }
+        });
+    } else {
+        return res.status(200).json({ isAuthenticated: false });
+    }
+};
+
+export const resetPassword = async (req, res) => {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    try {
+        // Verificar el token
+        const decoded = jwt.verify(token, SECRET);
+
+        // Buscar el usuario por su ID
+        const user = await User.findById(decoded.userId);
+        if (!user) {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+
+        // Encriptar la nueva contraseña
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+        // Actualizar la contraseña del usuario
+        user.password = hashedPassword;
+        await user.save();
+
+        res.status(200).json({ message: 'Contraseña actualizada exitosamente' });
+    } catch (error) {
+        console.error('Error en el proceso de restablecimiento de contraseña:', error);
+        res.status(400).json({ message: 'Token inválido o expirado' });
+    }
+};
+
 
 // Función para obtener todos los usuarios
 export const getAll = async (req, res) => {
