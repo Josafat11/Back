@@ -116,6 +116,7 @@ export const verifyAccount = async (req, res) => {
     }
 };
 
+
 export const login = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -123,15 +124,6 @@ export const login = async (req, res) => {
         // Verificar si el email y la contraseña están presentes
         if (!email || !password) {
             return res.status(400).json({ message: "Correo y contraseña son requeridos" });
-        }
-
-        // Verificar si el usuario está bloqueado por demasiados intentos fallidos
-        if (loginTimeouts[email] && Date.now() < loginTimeouts[email]) {
-            const remainingTime = Math.ceil((loginTimeouts[email] - Date.now()) / 1000);  // Segundos restantes
-            return res.status(429).json({
-                message: `Has alcanzado el límite de intentos fallidos. Intenta de nuevo en ${remainingTime} segundos.`,
-                remainingTime
-            });
         }
 
         // Buscar al usuario por email
@@ -142,46 +134,60 @@ export const login = async (req, res) => {
 
         // Comparar la contraseña ingresada con la encriptada en la base de datos
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            failedLoginAttempts[email] = (failedLoginAttempts[email] || 0) + 1;
 
-            if (failedLoginAttempts[email] >= MAX_FAILED_ATTEMPTS) {
-                loginTimeouts[email] = Date.now() + LOGIN_TIMEOUT;  // Bloquear por 1 minuto
-                failedLoginAttempts[email] = 0;
-                const remainingTime = Math.ceil((loginTimeouts[email] - Date.now()) / 1000);
-                return res.status(429).json({
-                    message: `Has alcanzado el límite de intentos fallidos. Intenta de nuevo en ${remainingTime} segundos.`,
-                    remainingTime
-                });
-            }
+        if (isMatch) {
+            // Si la contraseña es correcta, restablecer los contadores de intentos fallidos y el bloqueo
+            user.failedLoginAttempts = 0;
+            user.lockUntil = null;
+            await user.save();  // Guardar el estado actualizado
 
-            return res.status(400).json({ message: `Contraseña incorrecta. Intentos fallidos: ${failedLoginAttempts[email]}/${MAX_FAILED_ATTEMPTS}` });
+            // Guardar la sesión y agregar el rol
+            req.session.userId = user._id;
+            req.session.email = user.email;
+            req.session.name = user.name;
+            req.session.role = user.role;  // Agregamos el rol del usuario a la sesión
+            req.session.isAuthenticated = true;
+
+            return res.status(200).json({
+                message: "Inicio de sesión exitoso",
+                user: {
+                    userId: user._id,
+                    email: user.email,
+                    name: user.name,
+                    role: user.role  // Devolvemos el rol junto con la respuesta
+                }
+            });
         }
 
-        // Si la contraseña es correcta, restablecer los contadores de intentos fallidos
-        failedLoginAttempts[email] = 0;
-        loginTimeouts[email] = null;
+        // Si la contraseña no es correcta, verificar si el usuario está bloqueado
+        if (user.lockUntil && user.lockUntil > Date.now()) {
+            const remainingTime = Math.ceil((user.lockUntil - Date.now()) / 1000);  // Segundos restantes
+            return res.status(429).json({
+                message: `Usuario bloqueado. Intenta de nuevo en ${remainingTime} segundos.`,
+                remainingTime
+            });
+        }
 
-        // Guardar la sesión
-        req.session.userId = user._id;
-        req.session.email = user.email;
-        req.session.name = user.name; // Agregamos el nombre del usuario a la sesión
-        req.session.isAuthenticated = true;
+        // Incrementar los intentos fallidos si la contraseña es incorrecta
+        user.failedLoginAttempts += 1;
 
-        return res.status(200).json({
-            message: "Inicio de sesión exitoso",
-            user: {
-                userId: user._id,
-                email: user.email,
-                name: user.name  // Incluimos el nombre en la respuesta
-            }
-        });
+        // Bloquear al usuario si alcanza el límite de intentos fallidos
+        if (user.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
+            user.lockUntil = Date.now() + LOGIN_TIMEOUT;  // Bloquear por el tiempo definido
+            user.failedLoginAttempts = 0;  // Reiniciar intentos fallidos
+        }
+
+        await user.save();  // Guardar los cambios en la base de datos
+
+        return res.status(400).json({ message: `Contraseña incorrecta. Intentos fallidos: ${user.failedLoginAttempts}/${MAX_FAILED_ATTEMPTS}` });
 
     } catch (error) {
         console.error("Error en la función login:", error);
         res.status(500).json({ message: "Error interno del servidor" });
     }
 };
+
+
 
 // Función para enviar el enlace de restablecimiento de contraseña
 export const sendPasswordResetLink = async (req, res) => {
@@ -284,6 +290,74 @@ export const getAll = async (req, res) => {
         res.status(200).json(allUsers);
     } catch (error) {
         console.error("Error en la función getAll:", error);
+        res.status(500).json({ message: "Error interno del servidor" });
+    }
+};
+
+// Obtener todos los usuarios
+export const getAllUsers = async (req, res) => {
+    try {
+        const users = await User.find().select('-password'); // Excluye la contraseña de la respuesta
+        res.status(200).json(users);
+    } catch (error) {
+        console.error("Error obteniendo usuarios:", error);
+        res.status(500).json({ message: "Error interno del servidor" });
+    }
+};
+
+// Obtener un solo usuario por ID
+export const getUserById = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id).select('-password');
+        if (!user) {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+        res.status(200).json(user);
+    } catch (error) {
+        console.error("Error obteniendo usuario:", error);
+        res.status(500).json({ message: "Error interno del servidor" });
+    }
+};
+
+
+// Actualizar un usuario
+export const updateUser = async (req, res) => {
+    try {
+        const { name, lastname, email, role } = req.body;
+
+        const user = await User.findById(req.params.id);
+        if (!user) {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+
+        // Actualizar solo los campos permitidos
+        user.name = name || user.name;
+        user.lastname = lastname || user.lastname;
+        user.email = email || user.email;
+        user.role = role || user.role; // Solo administradores pueden cambiar el rol
+
+        await user.save();
+        res.status(200).json({ message: 'Usuario actualizado con éxito' });
+    } catch (error) {
+        console.error("Error actualizando usuario:", error);
+        res.status(500).json({ message: "Error interno del servidor" });
+    }
+};
+
+
+// Marcar un usuario como eliminado (eliminación lógica)
+export const deleteUser = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        if (!user) {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+
+        user.deleted = true; // Campo adicional para marcar como eliminado lógicamente
+        await user.save();
+        res.status(200).json({ message: 'Usuario eliminado (lógicamente)' });
+    } catch (error) {
+        console.error("Error eliminando usuario:", error);
         res.status(500).json({ message: "Error interno del servidor" });
     }
 };

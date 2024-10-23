@@ -1,4 +1,3 @@
-// models/user.model.js
 import mongoose from 'mongoose';
 
 const { Schema, model } = mongoose;
@@ -23,13 +22,19 @@ const userSchema = new Schema({
   preguntaSecreta: { type: String, required: true },
   respuestaSecreta: { type: String, required: true },
   password: { type: String, required: true },  // Campo de contraseña encriptada
-  verified: { type: Boolean, default: false }  // Nuevo campo para la verificación
+  verified: { type: Boolean, default: false },  // Usuario verificado
+  role: { type: String, default: 'publico' }, // Rol del usuario, 'admin' o 'publico'
+
+  // Nuevos campos para el bloqueo del usuario
+  failedLoginAttempts: { type: Number, default: 0 },  // Intentos fallidos de login
+  lockUntil: { type: Date },  // Fecha hasta la cual el usuario está bloqueado
+
+  deleted: { type: Boolean, default: false }  // Eliminación lógica del usuario
 }, {
   timestamps: true,
   versionKey: false
 });
 
-// Creamos el modelo basado en el esquema
 const User = model('User', userSchema);
 
 export default User;
