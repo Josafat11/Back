@@ -3,7 +3,9 @@ import dns from 'dns';
 import net from 'net';
 
 // URI de MongoDB Atlas (Producción)
-const atlasURI = 'mongodb+srv://Josafat:FamiliaHD1@cluster0.dnsqacd.mongodb.net/superpet?retryWrites=true&w=majority';
+// URI de MongoDB Atlas (Producción) cambiando la base de datos a 'Refaccionaria'
+const atlasURI = 'mongodb+srv://Josafat:FamiliaHD1@cluster0.dnsqacd.mongodb.net/Refaccionaria?retryWrites=true&w=majority';
+
 
 // URI local para la base de datos 'Refaccionaria'
 const localURI = 'mongodb://localhost:27017/Refaccionaria';
@@ -28,7 +30,7 @@ const connectWithRetry = (uri) => {
 };
 
 // Conecta usando la URI local o de producción según sea necesario
-connectWithRetry(localURI); // Descomentar para entorno de desarrollo local
-// connectWithRetry(atlasURI); // Comentar para usar entorno local
+//connectWithRetry(localURI); // Descomentar para entorno de desarrollo local
+connectWithRetry(atlasURI); // Comentar para usar entorno local
 
 export default mongoose;
