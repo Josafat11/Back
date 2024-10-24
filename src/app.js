@@ -15,13 +15,19 @@ import deslinde from './routes/Deslinde.routes.js';
 const app = express();
 
 // Middlewares
-app.use(morgan('dev'));
-app.use(express.json());
+const allowedOrigins = ['http://localhost:3000', 'https://back-jose-josafats-projects.vercel.app'];
+
 app.use(cors({
-    origin: 'http://localhost:3000',  // Especifica el origen permitido
-    credentials: true,                 // Permite el envío de cookies o credenciales
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],  // Métodos permitidos
-    allowedHeaders: ['Content-Type', 'Authorization'] // Encabezados permitidos
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 
