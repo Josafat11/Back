@@ -1,4 +1,4 @@
-import User from "../models/User.Model.js";
+import User from "../models/User.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken"; // Importamos JWT para generar el token
 import { transporter } from "../libs/emailConfig.js"; // Importamos Nodemailer
