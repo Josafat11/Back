@@ -20,5 +20,8 @@ router.get('/users', isAuthenticated, isAdmin, userController.getAllUsers); // O
 router.get('/users/:id', isAuthenticated, isAdmin, userController.getUserById); // Obtener un solo usuario por ID
 router.put('/users/:id', isAuthenticated, isAdmin, userController.updateUser); // Actualizar un usuario
 router.delete('/users/:id', isAuthenticated, isAdmin, userController.deleteUser); // Eliminar un usuario (eliminación lógica)
+// Rutas del admin para ver usuarios recientes y bloqueados
+router.get('/admin/recent-users', isAuthenticated, isAdmin, userController.getRecentUsers);
+router.get('/admin/recent-blocked', isAuthenticated, isAdmin, userController.getRecentBlockedUsers);
 
 export default router;

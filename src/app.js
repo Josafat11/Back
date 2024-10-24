@@ -8,6 +8,7 @@ import mongoose from './database.js'; // Importar la conexión a la base de dato
 // Importación de las rutas desde src/routes
 import user from './routes/User.routes.js'; 
 import prueba from './routes/prueba.js';
+import politicas from './routes/Politicas.routes.js';
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.use(session({
 // Rutas
 app.use('/api/auth', user);
 app.use('/api/users', prueba);
+app.use('/api/docs', politicas);
 
 // Manejo de rutas no encontradas (404)
 app.use((req, res, next) => {

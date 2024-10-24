@@ -2,7 +2,6 @@ import mongoose from 'mongoose';
 
 const { Schema, model } = mongoose;
 
-// Definimos el esquema del usuario
 const userSchema = new Schema({
   name: { type: String, required: true, trim: true },
   lastname: { type: String, required: true, trim: true },
@@ -22,14 +21,12 @@ const userSchema = new Schema({
   preguntaSecreta: { type: String, required: true },
   respuestaSecreta: { type: String, required: true },
   password: { type: String, required: true },  // Campo de contraseña encriptada
-  verified: { type: Boolean, default: false },  // Usuario verificado
-  role: { type: String, default: 'publico' }, // Rol del usuario, 'admin' o 'publico'
-
-  // Nuevos campos para el bloqueo del usuario
-  failedLoginAttempts: { type: Number, default: 0 },  // Intentos fallidos de login
-  lockUntil: { type: Date },  // Fecha hasta la cual el usuario está bloqueado
-
-  deleted: { type: Boolean, default: false }  // Eliminación lógica del usuario
+  verified: { type: Boolean, default: false },  // Usuario verificado o no
+  role: { type: String, default: 'normal' },  // Rol del usuario, 'admin' o 'normal'
+  failedLoginAttempts: { type: Number, default: 0 },  // Intentos fallidos de inicio de sesión
+  lockedUntil: { type: Date, default: null },  // Fecha y hora hasta que el usuario está bloqueado
+  createdAt: { type: Date, default: Date.now },  // Fecha de creación del usuario
+  blocked: { type: Boolean, default: false },  // Si el usuario está bloqueado manualmente
 }, {
   timestamps: true,
   versionKey: false

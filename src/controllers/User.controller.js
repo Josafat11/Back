@@ -361,3 +361,27 @@ export const deleteUser = async (req, res) => {
         res.status(500).json({ message: "Error interno del servidor" });
     }
 };
+
+//informacion de usuarios
+export const getRecentUsers = async (req, res) => {
+    try {
+      const recentUsers = await User.find().sort({ createdAt: -1 }).limit(5);
+      res.status(200).json(recentUsers);
+    } catch (error) {
+      console.error('Error al obtener usuarios recientes:', error);
+      res.status(500).json({ message: 'Error al obtener usuarios recientes' });
+    }
+  };
+
+//informacion de usuarios bloqueados
+export const getRecentBlockedUsers = async (req, res) => {
+    try {
+      const blockedUsers = await User.find({ lockedUntil: { $exists: true, $gt: new Date() } })
+                                    .sort({ lockedUntil: -1 })
+                                    .limit(5);
+      res.status(200).json(blockedUsers);
+    } catch (error) {
+      console.error('Error al obtener usuarios bloqueados:', error);
+      res.status(500).json({ message: 'Error al obtener usuarios bloqueados' });
+    }
+  };
