@@ -9,6 +9,8 @@ import mongoose from './database.js'; // Importar la conexión a la base de dato
 import user from './routes/User.routes.js'; 
 import prueba from './routes/prueba.js';
 import politicas from './routes/Politicas.routes.js';
+import terminos from './routes/Terminos.routes.js';
+import deslinde from './routes/Deslinde.routes.js';
 
 const app = express();
 
@@ -44,6 +46,8 @@ app.use(session({
 app.use('/api/auth', user);
 app.use('/api/users', prueba);
 app.use('/api/docs', politicas);
+app.use('/api/docs', terminos);
+app.use('/api/docs', deslinde);
 
 // Manejo de rutas no encontradas (404)
 app.use((req, res, next) => {
