@@ -17,7 +17,7 @@ const app = express();
 // Lista blanca de orígenes permitidos
 const listWhite = [
     'http://localhost:3000',  // Frontend en desarrollo
-    'https://front-jose-josafats-projects.vercel.app' // Frontend en producción
+    'https://frontend-five-roan-17.vercel.app' // Frontend en producción
 ];
 
 // Configuración de CORS
