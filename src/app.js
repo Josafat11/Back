@@ -1,12 +1,12 @@
 import express from 'express';
 import morgan from 'morgan';
 import cors from 'cors';
-import session from 'express-session'; // Importar express-session
-import MongoStore from 'connect-mongo'; // Importar connect-mongo
-import mongoose from './database.js'; // Importar la conexión a la base de datos
+import session from 'express-session';
+import MongoStore from 'connect-mongo';
+import mongoose from './database.js';
 
-// Importación de las rutas desde src/routes
-import user from './routes/User.routes.js'; 
+// Importación de las rutas
+import user from './routes/User.routes.js';
 import prueba from './routes/prueba.js';
 import politicas from './routes/Politicas.routes.js';
 import terminos from './routes/Terminos.routes.js';
@@ -14,37 +14,49 @@ import deslinde from './routes/Deslinde.routes.js';
 
 const app = express();
 
-// Middlewares
-const allowedOrigins = ['http://localhost:3000', 'https://back-steel-iota.vercel.app'];
+// List of allowed origins
+const allowedOrigins = [
+    'http://localhost:3000', 
+    'https://front-jose-josafats-projects.vercel.app', // Asegúrate de que esta sea la URL de tu frontend en producción
+    'https://back-steel-iota.vercel.app' // URL del backend en producción
+];
 
-app.use(cors({
+// CORS middleware configuration
+const corsOptions = {
     origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
+        // Permitir solicitudes sin origen (como Postman)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
             callback(new Error('Not allowed by CORS'));
         }
     },
-    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true, // Necesario para enviar cookies
     allowedHeaders: ['Content-Type', 'Authorization']
-}));
+};
 
+// Middlewares
+app.use(morgan('dev'));
+app.use(express.json());
+app.use(cors(corsOptions)); // Habilitar CORS con las opciones definidas
+app.options('*', cors(corsOptions)); // Permitir preflight (opciones) para todas las rutas
 
 // Configuración de sesiones
 app.use(session({
-    secret: 'mi_secreto_seguro', // Cambia esto por un valor más seguro
+    secret: 'mi_secreto_seguro',
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
-        mongoUrl: 'mongodb://localhost:27017/Refaccionaria', // O usa atlasURI para producción
-        mongooseConnection: mongoose.connection // Asegurar que MongoStore use la conexión de Mongoose
+        mongoUrl: 'mongodb://localhost:27017/Refaccionaria',
+        mongooseConnection: mongoose.connection
     }),
     cookie: {
         httpOnly: true, 
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 1000 * 60 * 60, 
-        sameSite: 'strict' 
+        maxAge: 1000 * 60 * 60,
+        sameSite: 'strict'
     }
 }));
 
