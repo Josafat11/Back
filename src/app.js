@@ -1,12 +1,12 @@
 import express from 'express';
 import morgan from 'morgan';
 import cors from 'cors';
-import session from 'express-session';
-import MongoStore from 'connect-mongo';
-import mongoose from './database.js';
+import session from 'express-session'; 
+import MongoStore from 'connect-mongo'; 
+import mongoose from './database.js'; 
 
-// Importación de las rutas
-import user from './routes/User.routes.js';
+// Importación de las rutas desde src/routes
+import user from './routes/User.routes.js'; 
 import prueba from './routes/prueba.js';
 import politicas from './routes/Politicas.routes.js';
 import terminos from './routes/Terminos.routes.js';
@@ -14,36 +14,32 @@ import deslinde from './routes/Deslinde.routes.js';
 
 const app = express();
 
-// List of allowed origins
-const allowedOrigins = [
-    'http://localhost:3000', 
-    'https://front-jose-josafats-projects.vercel.app', // Asegúrate de que esta sea la URL de tu frontend en producción
-    'https://back-steel-iota.vercel.app' // URL del backend en producción
+// Lista blanca de orígenes permitidos
+const listWhite = [
+    'http://localhost:3000',  // Frontend en desarrollo
+    'https://front-jose-josafats-projects.vercel.app' // Frontend en producción
 ];
 
-// CORS middleware configuration
+// Configuración de CORS
 const corsOptions = {
     origin: function (origin, callback) {
-        // Permitir solicitudes sin origen (como Postman)
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
+        if (!origin || listWhite.indexOf(origin) !== -1) {
+            callback(null, true); // Permitir si está en la lista blanca
         } else {
-            callback(new Error('Not allowed by CORS'));
+            callback(new Error('No permitido por CORS'));
         }
     },
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true, // Necesario para enviar cookies
-    allowedHeaders: ['Content-Type', 'Authorization']
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], 
+    credentials: true, // Permite enviar cookies
+    allowedHeaders: ['Content-Type', 'Authorization','x-access-token','x-access-notification'], 
 };
 
 // Middlewares
 app.use(morgan('dev'));
 app.use(express.json());
-app.use(cors(corsOptions)); // Habilitar CORS con las opciones definidas
-app.options('*', cors(corsOptions)); // Permitir preflight (opciones) para todas las rutas
+app.use(cors(corsOptions)); // Aplica las opciones de CORS
+app.options('*', cors(corsOptions)); // Preflight requests (opciones)
 
-// Configuración de sesiones
 app.use(session({
     secret: 'mi_secreto_seguro',
     resave: false,
@@ -54,9 +50,9 @@ app.use(session({
     }),
     cookie: {
         httpOnly: true, 
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 1000 * 60 * 60,
-        sameSite: 'strict'
+        secure: process.env.NODE_ENV === 'production', 
+        maxAge: 1000 * 60 * 60, 
+        sameSite: 'strict' 
     }
 }));
 
@@ -66,6 +62,10 @@ app.use('/api/users', prueba);
 app.use('/api/docs', politicas);
 app.use('/api/docs', terminos);
 app.use('/api/docs', deslinde);
+
+app.get('/', (req, res) => {
+    res.json({ msg: "Bienvenido a la API de tu proyecto" });
+});
 
 // Manejo de rutas no encontradas (404)
 app.use((req, res, next) => {
