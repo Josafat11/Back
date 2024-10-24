@@ -15,7 +15,7 @@ import deslinde from './routes/Deslinde.routes.js';
 const app = express();
 
 // Middlewares
-const allowedOrigins = ['http://localhost:3000', 'https://back-jose-josafats-projects.vercel.app'];
+const allowedOrigins = ['http://localhost:3000', 'https://back-steel-iota.vercel.app'];
 
 app.use(cors({
     origin: function (origin, callback) {
