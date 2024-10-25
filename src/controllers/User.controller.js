@@ -241,7 +241,14 @@ export const logout = (req, res) => {
       return res.status(500).json({ message: "Error al cerrar sesión" });
     }
 
-    res.clearCookie("connect.sid"); // Borra la cookie de sesión
+    // Borra la cookie de sesión
+    res.clearCookie("connect.sid", {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // Asegúrate de que secure esté configurado en producción
+      sameSite: 'strict', // Evita que la cookie se envíe en solicitudes cruzadas
+    });
+
     return res.status(200).json({ message: "Sesión cerrada con éxito" });
   });
 };
