@@ -14,9 +14,6 @@ import deslinde from './routes/Deslinde.routes.js';
 
 
 
-// URI de MongoDB Atlas para producción
-const atlasURI = 'mongodb+srv://Josafat:FamiliaHD1@cluster0.dnsqacd.mongodb.net/Refaccionaria?retryWrites=true&w=majority';
-
 // Configuración de CORS para producción
 const listWhite = [
     'http://localhost:3000',  // Frontend en desarrollo
@@ -46,22 +43,22 @@ app.use(express.json());
 app.use(cors( corsOptions ));
 app.options('*', cors( corsOptions ));
 
-// Configuración de sesiones utilizando MongoDB Atlas
+
 app.use(session({
     secret: 'mi_secreto_seguro',  // Cambia esto por algo más seguro
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
-        mongoUrl: atlasURI,  
-        collectionName: 'sessions', // Especifica un nombre para la colección de sesiones
-        ttl: 14 * 24 * 60 * 60, // 14 días de tiempo de vida
+        client: mongoose.connection.getClient(), // Usa el cliente ya conectado
+        collectionName: 'sessions', 
+        ttl: 14 * 24 * 60 * 60, 
     }),
     cookie: {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production', // Solo en HTTPS
-        maxAge: 1000 * 60 * 60, // 1 hora
-        sameSite: 'lax', // O 'strict' si estás seguro que es compatible
-      }
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 1000 * 60 * 60, 
+        sameSite: 'lax',
+    }
 }));
 
 // Rutas
