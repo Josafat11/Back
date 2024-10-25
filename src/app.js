@@ -24,7 +24,7 @@ app.use(express.json());
 // Configuración de CORS para producción
 const listWhite = [
     'http://localhost:3000',  // Frontend en desarrollo
-    'https://frontend-five-roan-17.vercel.app', // Frontend en producción
+    'https://frontend-alpha-six-22.vercel.app', // Frontend correcto en producción
 ];
 
 const corsOptions = {
