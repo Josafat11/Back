@@ -121,81 +121,80 @@ export const verifyAccount = async (req, res) => {
     }
   };
   
-export const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    // Verificar si el email y la contraseña están presentes
-    if (!email || !password) {
-      return res
-        .status(400)
-        .json({ message: "Correo y contraseña son requeridos" });
-    }
-
-    // Buscar al usuario por email
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ message: "Usuario no encontrado" });
-    }
-
-    // Comparar la contraseña ingresada con la encriptada en la base de datos
-    const isMatch = await bcrypt.compare(password, user.password);
-
-    if (isMatch) {
-      // Si la contraseña es correcta, restablecer los contadores de intentos fallidos y el bloqueo
+  export const login = async (req, res) => {
+    try {
+      const { email, password } = req.body;
+  
+      // Verificar si el email y la contraseña están presentes
+      if (!email || !password) {
+        return res.status(400).json({ message: "Correo y contraseña son requeridos" });
+      }
+  
+      // Buscar al usuario por email
+      const user = await User.findOne({ email });
+      if (!user) {
+        return res.status(401).json({ message: "Credenciales incorrectas" });
+      }
+  
+      // Verificar si el usuario está bloqueado
+      if (user.lockUntil && user.lockUntil > Date.now()) {
+        const remainingTime = Math.ceil((user.lockUntil - Date.now()) / 1000); // Segundos restantes
+        return res.status(429).json({
+          message: `Usuario bloqueado. Intenta de nuevo en ${remainingTime} segundos.`,
+          remainingTime,
+        });
+      }
+  
+      // Comparar la contraseña ingresada con la encriptada en la base de datos
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        // Incrementar intentos fallidos
+        user.failedLoginAttempts += 1;
+  
+        // Bloquear al usuario si alcanza el límite de intentos fallidos
+        if (user.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
+          user.lockUntil = Date.now() + LOGIN_TIMEOUT; // Bloquear por el tiempo definido
+          user.failedLoginAttempts = 0; // Reiniciar intentos fallidos
+        }
+        await user.save(); // Guardar los cambios
+  
+        return res.status(401).json({ message: "Credenciales incorrectas" });
+      }
+  
+      // Restablecer los intentos fallidos si la contraseña es correcta
       user.failedLoginAttempts = 0;
       user.lockUntil = null;
       await user.save(); // Guardar el estado actualizado
-
+  
       // Guardar la sesión y agregar el rol
       req.session.userId = user._id;
       req.session.email = user.email;
       req.session.name = user.name;
       req.session.role = user.role; // Agregamos el rol del usuario a la sesión
       req.session.isAuthenticated = true;
-
-      return res.status(200).json({
-        message: "Inicio de sesión exitoso",
-        user: {
-          userId: user._id,
-          email: user.email,
-          name: user.name,
-          role: user.role, // Devolvemos el rol junto con la respuesta
-        },
+  
+      req.session.save((err) => {
+        if (err) {
+          console.error("Error al guardar la sesión:", err);
+          return res.status(500).json({ message: "Error interno de la sesión" });
+        }
+  
+        return res.status(200).json({
+          message: "Inicio de sesión exitoso",
+          user: {
+            userId: user._id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+          },
+        });
       });
+    } catch (error) {
+      console.error("Error en la función login:", error);
+      res.status(500).json({ message: "Error interno del servidor" });
     }
-
-    // Si la contraseña no es correcta, verificar si el usuario está bloqueado
-    if (user.lockUntil && user.lockUntil > Date.now()) {
-      const remainingTime = Math.ceil((user.lockUntil - Date.now()) / 1000); // Segundos restantes
-      return res.status(429).json({
-        message: `Usuario bloqueado. Intenta de nuevo en ${remainingTime} segundos.`,
-        remainingTime,
-      });
-    }
-
-    // Incrementar los intentos fallidos si la contraseña es incorrecta
-    user.failedLoginAttempts += 1;
-
-    // Bloquear al usuario si alcanza el límite de intentos fallidos
-    if (user.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
-      user.lockUntil = Date.now() + LOGIN_TIMEOUT; // Bloquear por el tiempo definido
-      user.failedLoginAttempts = 0; // Reiniciar intentos fallidos
-    }
-
-    await user.save(); // Guardar los cambios en la base de datos
-
-    return res
-      .status(400)
-      .json({
-        message: `Contraseña incorrecta. Intentos fallidos: ${user.failedLoginAttempts}/${MAX_FAILED_ATTEMPTS}`,
-      });
-  } catch (error) {
-    console.error("Error en la función login:", error);
-    res.status(500).json({ message: "Error interno del servidor" });
-  }
-};
-
+  };
+  
 // Función para enviar el enlace de restablecimiento de contraseña
 export const sendPasswordResetLink = async (req, res) => {
   const { email } = req.body;

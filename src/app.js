@@ -29,17 +29,15 @@ const listWhite = [
 
 const corsOptions = {
     origin: function (origin, callback) {
-        if (!origin || listWhite.indexOf(origin) !== -1) {
-            callback(null, true); // Permitir si está en la lista blanca
-        } else {
-            callback(new Error('No permitido por CORS'));
-        }
+      if (!origin || listWhite.includes(origin) || origin.includes('vercel.app')) {
+        callback(null, true);
+      } else {
+        callback(new Error('No permitido por CORS'));
+      }
     },
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization'],
-};
-
+    credentials: true,  // Importante para que se envíen las cookies de sesión
+  };
+  
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // Habilita preflight requests
 
@@ -54,10 +52,10 @@ app.use(session({
     }),
     cookie: {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',  // Asegura las cookies en producción
-        maxAge: 1000 * 60 * 60,  // 1 hora
-        sameSite: 'strict'  // Asegura que las cookies solo se envíen en el mismo sitio
-    }
+        secure: process.env.NODE_ENV === 'production', // Solo en HTTPS
+        maxAge: 1000 * 60 * 60, // 1 hora
+        sameSite: 'lax', // O 'strict' si estás seguro que es compatible
+      }
 }));
 
 // Rutas
