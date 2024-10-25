@@ -15,7 +15,7 @@ import deslinde from './routes/Deslinde.routes.js';
 
 
 // URI de MongoDB Atlas para producción
-const atlasURI = 'mongodb+srv://Josafat:FamiliaHD1@cluster0.dnsqacd.mongodb.net/Refaccionaria?retryWrites=true&w=majority&serverSelectionTimeoutMS=5000';
+const atlasURI = 'mongodb+srv://Josafat:FamiliaHD1@cluster0.dnsqacd.mongodb.net/Refaccionaria';
 
 // Configuración de CORS para producción
 const listWhite = [
