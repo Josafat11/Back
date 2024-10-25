@@ -12,14 +12,10 @@ import politicas from './routes/Politicas.routes.js';
 import terminos from './routes/Terminos.routes.js';
 import deslinde from './routes/Deslinde.routes.js';
 
-const app = express();
+
 
 // URI de MongoDB Atlas para producción
 const atlasURI = 'mongodb+srv://Josafat:FamiliaHD1@cluster0.dnsqacd.mongodb.net/Refaccionaria?retryWrites=true&w=majority';
-
-// Middlewares
-app.use(morgan('dev'));
-app.use(express.json());
 
 // Configuración de CORS para producción
 const listWhite = [
@@ -29,17 +25,26 @@ const listWhite = [
 
 const corsOptions = {
     origin: function (origin, callback) {
-      if (!origin || listWhite.includes(origin) || origin.includes('vercel.app')) {
-        callback(null, true);
-      } else {
-        callback(new Error('No permitido por CORS'));
-      }
+        // Permitir solicitudes sin origen (como Postman)
+        if (!origin) return callback(null, true);
+        if (listWhite.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('No permitido por CORS'));
+        }
     },
-    credentials: true,  // Importante para que se envíen las cookies de sesión
-  };
-  
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Habilita preflight requests
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-access-token','x-access-notification'],
+};
+
+
+
+const app = express();
+app.use(morgan('dev'));
+app.use(express.json());
+app.use(cors( corsOptions ));
+app.options('*', cors( corsOptions ));
 
 // Configuración de sesiones utilizando MongoDB Atlas
 app.use(session({
