@@ -243,21 +243,28 @@ export const logout = (req, res) => {
     });
 };
 
+
 // Verificar si el usuario está autenticado
 export const checkSession = (req, res) => {
-    if (req.session.userId) {
-        return res.status(200).json({
-            isAuthenticated: true,
-            user: {
-                userId: req.session.userId,
-                email: req.session.email,
-                name: req.session.name, // Incluimos el nombre en la respuesta
-            },
-        });
-    } else {
-        return res.status(200).json({ isAuthenticated: false });
+    try {
+        if (req.session.userId) {
+            return res.status(200).json({
+                isAuthenticated: true,
+                user: {
+                    userId: req.session.userId,
+                    email: req.session.email,
+                    name: req.session.name, // Incluimos el nombre en la respuesta
+                },
+            });
+        } else {
+            return res.status(200).json({ isAuthenticated: false });
+        }
+    } catch (error) {
+        console.error("Error en checkSession:", error); // Mostrar el error en la consola
+        return res.status(500).json({ message: "Error en el servidor" });
     }
 };
+
 
 export const resetPassword = async (req, res) => {
     const { token } = req.params;
