@@ -14,31 +14,11 @@ import deslinde from './routes/Deslinde.routes.js';
 
 const app = express();
 
-// Lista blanca de orígenes permitidos
-const listWhite = [
-    'http://localhost:3000',  // Frontend en desarrollo
-    'https://frontend-five-roan-17.vercel.app' // Frontend en producción
-];
-
-// Configuración de CORS
-const corsOptions = {
-    origin: function (origin, callback) {
-        if (!origin || listWhite.indexOf(origin) !== -1) {
-            callback(null, true); // Permitir si está en la lista blanca
-        } else {
-            callback(new Error('No permitido por CORS'));
-        }
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE'], 
-    credentials: true, // Permite enviar cookies
-    allowedHeaders: ['Content-Type', 'Authorization','x-access-token','x-access-notification'], 
-};
-
 // Middlewares
 app.use(morgan('dev'));
 app.use(express.json());
-app.use(cors(corsOptions)); // Aplica las opciones de CORS
-app.options('*', cors(corsOptions)); // Preflight requests (opciones)
+app.use(cors()); // Desactiva CORS para pruebas, permite todas las solicitudes
+app.options('*', cors()); // Habilita preflight requests para todos los métodos
 
 app.use(session({
     secret: 'mi_secreto_seguro',
